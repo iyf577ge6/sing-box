@@ -16,8 +16,9 @@
   <form id="inbound-form">
     <label>
       Type
-      <input id="type" required />
+      <select id="type" required></select>
     </label>
+    <div id="type-settings" style="margin-bottom:1rem;font-size:0.9rem;color:#555;"></div>
     <label>
       Tag
       <input id="tag" required />
@@ -40,6 +41,104 @@
   <pre id="result"></pre>
   <button id="copy-btn" style="display:none;">Copy JSON</button>
   <script>
+  const inboundSettings = {
+    anytls: ['users', 'padding_scheme', 'tls'],
+    direct: ['network', 'override_address', 'override_port'],
+    http: ['tls', 'users', 'set_system_proxy'],
+    hysteria: [
+      'up',
+      'down',
+      'up_mbps',
+      'down_mbps',
+      'obfs',
+      'users',
+      'recv_window_conn',
+      'recv_window_client',
+      'max_conn_client',
+      'disable_mtu_discovery',
+      'tls'
+    ],
+    hysteria2: ['up_mbps', 'down_mbps', 'obfs', 'users', 'ignore_client_bandwidth', 'tls', 'masquerade', 'brutal_debug'],
+    mixed: ['users', 'set_system_proxy'],
+    naive: ['network', 'users', 'tls'],
+    redirect: [],
+    shadowsocks: ['network', 'method', 'password', 'multiplex'],
+    shadowtls: ['version', 'password', 'users', 'handshake', 'handshake_for_server_name', 'strict_mode', 'wildcard_sni'],
+    socks: ['users'],
+    tproxy: ['network'],
+    trojan: ['users', 'tls', 'fallback', 'fallback_for_alpn', 'multiplex', 'transport'],
+    tuic: ['users', 'congestion_control', 'auth_timeout', 'zero_rtt_handshake', 'heartbeat', 'tls'],
+    tun: [
+      'interface_name',
+      'address',
+      'inet4_address',
+      'inet6_address',
+      'mtu',
+      'gso',
+      'auto_route',
+      'iproute2_table_index',
+      'iproute2_rule_index',
+      'auto_redirect',
+      'auto_redirect_input_mark',
+      'auto_redirect_output_mark',
+      'loopback_address',
+      'strict_route',
+      'route_address',
+      'inet4_route_address',
+      'inet6_route_address',
+      'route_exclude_address',
+      'inet4_route_exclude_address',
+      'inet6_route_exclude_address',
+      'route_address_set',
+      'route_exclude_address_set',
+      'endpoint_independent_nat',
+      'udp_timeout',
+      'stack',
+      'include_interface',
+      'exclude_interface',
+      'include_uid',
+      'include_uid_range',
+      'exclude_uid',
+      'exclude_uid_range',
+      'include_android_user',
+      'include_package',
+      'exclude_package',
+      'platform'
+    ],
+    vless: ['users', 'tls', 'multiplex', 'transport'],
+    vmess: ['users', 'tls', 'multiplex', 'transport']
+  };
+
+  const typeSelect = document.getElementById('type');
+  Object.keys(inboundSettings).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    typeSelect.appendChild(opt);
+  });
+
+  const settingsDiv = document.getElementById('type-settings');
+  function updateSettingsInfo() {
+    settingsDiv.innerHTML = '';
+    const selected = typeSelect.value;
+    const settings = inboundSettings[selected] || [];
+    if (!settings.length) {
+      settingsDiv.textContent = 'No additional settings.';
+      return;
+    }
+    settings.forEach(key => {
+      const label = document.createElement('label');
+      label.textContent = key;
+      const input = document.createElement('input');
+      input.dataset.setting = key;
+      input.placeholder = 'JSON or value';
+      label.appendChild(input);
+      settingsDiv.appendChild(label);
+    });
+  }
+  typeSelect.addEventListener('change', updateSettingsInfo);
+  updateSettingsInfo();
+
   document.getElementById('inbound-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const type = document.getElementById('type').value.trim();
@@ -48,6 +147,15 @@
     const port = parseInt(document.getElementById('port').value, 10);
     const optionsText = document.getElementById('options').value.trim();
     let inbound = { type: type, tag: tag, listen: listen, listen_port: port };
+    settingsDiv.querySelectorAll('input').forEach(input => {
+      const val = input.value.trim();
+      if (val === '') return;
+      try {
+        inbound[input.dataset.setting] = JSON.parse(val);
+      } catch {
+        inbound[input.dataset.setting] = val;
+      }
+    });
     if (optionsText) {
       try {
         const opts = JSON.parse(optionsText);
