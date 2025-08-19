@@ -18,7 +18,11 @@
       Type
       <select id="type" required></select>
     </label>
-    <div id="type-settings" style="margin-bottom:1rem;font-size:0.9rem;color:#555;"></div>
+    <label>
+      Settings
+      <select id="settings" multiple size="5"></select>
+    </label>
+    <div id="settings-fields" style="margin-bottom:1rem;font-size:0.9rem;color:#555;"></div>
     <label>
       Tag
       <input id="tag" required />
@@ -119,20 +123,47 @@
       typeSelect.appendChild(opt);
     });
 
-    const settingsDiv = document.getElementById('type-settings');
+    const settingsSelect = document.getElementById('settings');
+    const settingsFields = document.getElementById('settings-fields');
 
-    function updateSettingsInfo() {
-      settingsDiv.innerHTML = '';
+    function updateSettingsOptions() {
+      settingsSelect.innerHTML = '';
+      settingsFields.innerHTML = '';
       const selected = typeSelect.value;
       const settings = inboundSettings[selected] || [];
 
       if (!settings.length) {
-        settingsDiv.textContent = 'No additional settings.';
+        const opt = document.createElement('option');
+        opt.textContent = 'No additional settings';
+        opt.disabled = true;
+        settingsSelect.appendChild(opt);
+        settingsSelect.disabled = true;
         return;
       }
 
+      settingsSelect.disabled = false;
       settings.forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = key;
+        settingsSelect.appendChild(opt);
+      });
+    }
+
+    function updateSettingsFields() {
+      const selectedKeys = Array.from(settingsSelect.selectedOptions).map(o => o.value);
+
+      Array.from(settingsFields.querySelectorAll('label')).forEach(label => {
+        const key = label.dataset.setting;
+        if (!selectedKeys.includes(key)) {
+          label.remove();
+        }
+      });
+
+      selectedKeys.forEach(key => {
+        if (settingsFields.querySelector(`label[data-setting="${key}"]`)) return;
         const label = document.createElement('label');
+        label.dataset.setting = key;
         label.textContent = key;
 
         const input = document.createElement('input');
@@ -140,12 +171,13 @@
         input.placeholder = 'JSON or value';
 
         label.appendChild(input);
-        settingsDiv.appendChild(label);
+        settingsFields.appendChild(label);
       });
     }
 
-    typeSelect.addEventListener('change', updateSettingsInfo);
-    updateSettingsInfo();
+    typeSelect.addEventListener('change', updateSettingsOptions);
+    settingsSelect.addEventListener('change', updateSettingsFields);
+    updateSettingsOptions();
 
     document.getElementById('inbound-form').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -168,7 +200,7 @@
       };
 
       // Collect per-setting inputs
-      settingsDiv.querySelectorAll('input').forEach(input => {
+      settingsFields.querySelectorAll('input').forEach(input => {
         const val = input.value.trim();
         if (val === '') return;
         try {
