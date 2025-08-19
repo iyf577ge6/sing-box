@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sing-Box Inbound Builder</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    label { display: block; margin: 0.5rem 0; }
+    input, textarea { width: 100%; }
+    textarea { height: 120px; }
+    #result { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Inbound Builder</h1>
+  <form id="inbound-form">
+    <label>
+      Type
+      <input id="type" required />
+    </label>
+    <label>
+      Tag
+      <input id="tag" required />
+    </label>
+    <label>
+      Listen
+      <input id="listen" value="0.0.0.0" />
+    </label>
+    <label>
+      Listen Port
+      <input id="port" type="number" required />
+    </label>
+    <label>
+      Additional Options (JSON)
+      <textarea id="options"></textarea>
+    </label>
+    <button type="submit">Generate</button>
+  </form>
+  <h2>Result</h2>
+  <pre id="result"></pre>
+  <button id="copy-btn" style="display:none;">Copy JSON</button>
+  <script>
+  document.getElementById('inbound-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const type = document.getElementById('type').value.trim();
+    const tag = document.getElementById('tag').value.trim();
+    const listen = document.getElementById('listen').value.trim();
+    const port = parseInt(document.getElementById('port').value, 10);
+    const optionsText = document.getElementById('options').value.trim();
+    let inbound = { type: type, tag: tag, listen: listen, listen_port: port };
+    if (optionsText) {
+      try {
+        const opts = JSON.parse(optionsText);
+        Object.assign(inbound, opts);
+      } catch (err) {
+        alert('Invalid JSON in Additional Options');
+        return;
+      }
+    }
+    const json = JSON.stringify(inbound, null, 2);
+    document.getElementById('result').textContent = json;
+    const copyBtn = document.getElementById('copy-btn');
+    copyBtn.style.display = 'inline-block';
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(json);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy JSON', 2000);
+    };
+  });
+  </script>
+</body>
+</html>
