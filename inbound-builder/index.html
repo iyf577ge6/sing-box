@@ -6,7 +6,7 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
     label { display: block; margin: 0.5rem 0; }
-    input, textarea { width: 100%; }
+    input, textarea, select { width: 100%; }
     textarea { height: 120px; }
     #result { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; }
   </style>
@@ -33,80 +33,174 @@
     </label>
     <label>
       Additional Options (JSON)
-      <textarea id="options"></textarea>
+      <textarea id="options" placeholder='e.g. {"sniff": true}'></textarea>
     </label>
     <button type="submit">Generate</button>
   </form>
+
   <h2>Result</h2>
   <pre id="result"></pre>
   <button id="copy-btn" style="display:none;">Copy JSON</button>
+
   <script>
-  const inboundSettings = {
-    anytls: ['users', 'padding_scheme', 'tls'],
-    direct: ['network', 'override_address', 'override_port'],
-    http: ['tls', 'users', 'set_system_proxy'],
-    hysteria: ['up', 'down', 'up_mbps', 'down_mbps', 'obfs', 'users', 'recv_window_conn', 'recv_window_client', 'max_conn_client', 'disable_mtu_discovery', 'tls'],
-    hysteria2: ['up_mbps', 'down_mbps', 'obfs', 'users', 'ignore_client_bandwidth', 'tls', 'masquerade', 'brutal_debug'],
-    mixed: ['users', 'set_system_proxy'],
-    naive: ['network', 'users', 'tls'],
-    redirect: [],
-    shadowsocks: ['network', 'method', 'password', 'multiplex'],
-    shadowtls: ['version', 'password', 'users', 'handshake', 'handshake_for_server_name', 'strict_mode', 'wildcard_sni'],
-    socks: ['users'],
-    tproxy: ['network'],
-    trojan: ['users', 'tls', 'fallback', 'fallback_for_alpn', 'multiplex', 'transport'],
-    tuic: ['users', 'congestion_control', 'auth_timeout', 'zero_rtt_handshake', 'heartbeat', 'tls'],
-    tun: ['interface_name', 'address', 'inet4_address', 'inet6_address', 'mtu', 'gso', 'auto_route', 'iproute2_table_index', 'iproute2_rule_index', 'auto_redirect', 'auto_redirect_input_mark', 'auto_redirect_output_mark', 'loopback_address', 'strict_route', 'route_address', 'inet4_route_address', 'inet6_route_address', 'route_exclude_address', 'inet4_route_exclude_address', 'inet6_route_exclude_address', 'route_address_set', 'route_exclude_address_set', 'endpoint_independent_nat', 'udp_timeout', 'stack', 'include_interface', 'exclude_interface', 'include_uid', 'include_uid_range', 'exclude_uid', 'exclude_uid_range', 'include_android_user', 'include_package', 'exclude_package', 'platform'],
-    vless: ['users', 'tls', 'multiplex', 'transport'],
-    vmess: ['users', 'tls', 'multiplex', 'transport']
-  };
+    const inboundSettings = {
+      anytls: ['users', 'padding_scheme', 'tls'],
+      direct: ['network', 'override_address', 'override_port'],
+      http: ['tls', 'users', 'set_system_proxy'],
+      hysteria: [
+        'up',
+        'down',
+        'up_mbps',
+        'down_mbps',
+        'obfs',
+        'users',
+        'recv_window_conn',
+        'recv_window_client',
+        'max_conn_client',
+        'disable_mtu_discovery',
+        'tls'
+      ],
+      hysteria2: ['up_mbps', 'down_mbps', 'obfs', 'users', 'ignore_client_bandwidth', 'tls', 'masquerade', 'brutal_debug'],
+      mixed: ['users', 'set_system_proxy'],
+      naive: ['network', 'users', 'tls'],
+      redirect: [],
+      shadowsocks: ['network', 'method', 'password', 'multiplex'],
+      shadowtls: ['version', 'password', 'users', 'handshake', 'handshake_for_server_name', 'strict_mode', 'wildcard_sni'],
+      socks: ['users'],
+      tproxy: ['network'],
+      trojan: ['users', 'tls', 'fallback', 'fallback_for_alpn', 'multiplex', 'transport'],
+      tuic: ['users', 'congestion_control', 'auth_timeout', 'zero_rtt_handshake', 'heartbeat', 'tls'],
+      tun: [
+        'interface_name',
+        'address',
+        'inet4_address',
+        'inet6_address',
+        'mtu',
+        'gso',
+        'auto_route',
+        'iproute2_table_index',
+        'iproute2_rule_index',
+        'auto_redirect',
+        'auto_redirect_input_mark',
+        'auto_redirect_output_mark',
+        'loopback_address',
+        'strict_route',
+        'route_address',
+        'inet4_route_address',
+        'inet6_route_address',
+        'route_exclude_address',
+        'inet4_route_exclude_address',
+        'inet6_route_exclude_address',
+        'route_address_set',
+        'route_exclude_address_set',
+        'endpoint_independent_nat',
+        'udp_timeout',
+        'stack',
+        'include_interface',
+        'exclude_interface',
+        'include_uid',
+        'include_uid_range',
+        'exclude_uid',
+        'exclude_uid_range',
+        'include_android_user',
+        'include_package',
+        'exclude_package',
+        'platform'
+      ],
+      vless: ['users', 'tls', 'multiplex', 'transport'],
+      vmess: ['users', 'tls', 'multiplex', 'transport']
+    };
 
-  const typeSelect = document.getElementById('type');
-  Object.keys(inboundSettings).forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t;
-    opt.textContent = t;
-    typeSelect.appendChild(opt);
-  });
+    const typeSelect = document.getElementById('type');
+    Object.keys(inboundSettings).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      typeSelect.appendChild(opt);
+    });
 
-  const settingsDiv = document.getElementById('type-settings');
-  function updateSettingsInfo() {
-    const selected = typeSelect.value;
-    const settings = inboundSettings[selected] || [];
-    settingsDiv.textContent = settings.length
-      ? 'Available settings: ' + settings.join(', ')
-      : 'No additional settings.';
-  }
-  typeSelect.addEventListener('change', updateSettingsInfo);
-  updateSettingsInfo();
+    const settingsDiv = document.getElementById('type-settings');
 
-  document.getElementById('inbound-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const type = document.getElementById('type').value.trim();
-    const tag = document.getElementById('tag').value.trim();
-    const listen = document.getElementById('listen').value.trim();
-    const port = parseInt(document.getElementById('port').value, 10);
-    const optionsText = document.getElementById('options').value.trim();
-    let inbound = { type: type, tag: tag, listen: listen, listen_port: port };
-    if (optionsText) {
-      try {
-        const opts = JSON.parse(optionsText);
-        Object.assign(inbound, opts);
-      } catch (err) {
-        alert('Invalid JSON in Additional Options');
+    function updateSettingsInfo() {
+      settingsDiv.innerHTML = '';
+      const selected = typeSelect.value;
+      const settings = inboundSettings[selected] || [];
+
+      if (!settings.length) {
+        settingsDiv.textContent = 'No additional settings.';
         return;
       }
+
+      settings.forEach(key => {
+        const label = document.createElement('label');
+        label.textContent = key;
+
+        const input = document.createElement('input');
+        input.dataset.setting = key;
+        input.placeholder = 'JSON or value';
+
+        label.appendChild(input);
+        settingsDiv.appendChild(label);
+      });
     }
-    const json = JSON.stringify(inbound, null, 2);
-    document.getElementById('result').textContent = json;
-    const copyBtn = document.getElementById('copy-btn');
-    copyBtn.style.display = 'inline-block';
-    copyBtn.onclick = () => {
-      navigator.clipboard.writeText(json);
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => copyBtn.textContent = 'Copy JSON', 2000);
-    };
-  });
+
+    typeSelect.addEventListener('change', updateSettingsInfo);
+    updateSettingsInfo();
+
+    document.getElementById('inbound-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const type = document.getElementById('type').value.trim();
+      const tag = document.getElementById('tag').value.trim();
+      const listen = document.getElementById('listen').value.trim();
+      const port = parseInt(document.getElementById('port').value, 10);
+      const optionsText = document.getElementById('options').value.trim();
+
+      if (!type || !tag || Number.isNaN(port)) {
+        alert('Please fill Type, Tag, and a valid Listen Port.');
+        return;
+      }
+
+      const inbound = {
+        type: type,
+        tag: tag,
+        listen: listen || undefined,
+        listen_port: port
+      };
+
+      // Collect per-setting inputs
+      settingsDiv.querySelectorAll('input').forEach(input => {
+        const val = input.value.trim();
+        if (val === '') return;
+        try {
+          inbound[input.dataset.setting] = JSON.parse(val);
+        } catch {
+          inbound[input.dataset.setting] = val;
+        }
+      });
+
+      // Merge Additional Options JSON
+      if (optionsText) {
+        try {
+          const opts = JSON.parse(optionsText);
+          Object.assign(inbound, opts);
+        } catch (err) {
+          alert('Invalid JSON in Additional Options');
+          return;
+        }
+      }
+
+      const json = JSON.stringify(inbound, null, 2);
+      document.getElementById('result').textContent = json;
+
+      const copyBtn = document.getElementById('copy-btn');
+      copyBtn.style.display = 'inline-block';
+      copyBtn.textContent = 'Copy JSON';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(json);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => (copyBtn.textContent = 'Copy JSON'), 2000);
+      };
+    });
   </script>
 </body>
 </html>
